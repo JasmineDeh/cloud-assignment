@@ -14,6 +14,7 @@ import uproot # for reading .root files
 import awkward as ak # to represent nested data in columnar format
 import vector # for 4-momentum calculations
 import time
+import os
 
 #####################################################################################
 
@@ -304,6 +305,13 @@ def main(lumi=10, fraction=1.0):
     # draw the legend
     main_axes.legend( frameon=False ) # no box around the legend
 
+    # Save plot
+    output_dir = "/hzz-analysis/output"
+    os.makedirs(output_dir, exist_ok=True) # Create directory if it doesn't exist 
+    plot_path = os.path.join(output_dir, "plot.png")
+    plt.savefig(plot_path)
+    plt.close()
+    print(f"Plot saved to {plot_path}")
 
     # Signal stacked height
     signal_tot = signal_heights[0] + mc_x_tot

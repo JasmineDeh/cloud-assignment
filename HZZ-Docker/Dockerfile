@@ -18,5 +18,8 @@ RUN pip install aiohttp
 # Install dependencies from requirements.txt without using cache (used "pip show <package_name>" to reproduce package versions used in local environment)
 RUN pip install --no-cache-dir -r requirements.txt
 
+# Create output directory for plot
+RUN mkdir -p /hzz-analysis/output
+
 # Run Python script
 CMD ["python", "HZZAnalysis.py"]
