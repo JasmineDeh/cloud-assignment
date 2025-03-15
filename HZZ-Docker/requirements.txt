@@ -1,0 +1,7 @@
+numpy==1.26.4
+awkward==2.7.4
+vector==1.6.1
+ipython==8.25.0
+uproot==5.5.2
+matplotlib==3.10.1
+matplotlib-inline==0.1.6
