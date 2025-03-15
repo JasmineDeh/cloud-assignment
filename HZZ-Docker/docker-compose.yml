@@ -1,0 +1,13 @@
+version: "3.8"
+services:
+  analysis:
+    build: .
+    container_name: hzz-analysis
+    volumes:
+      - .:/hzz-analysis
+    environment:
+      - PYTHONUNBUFFERED=1
+    ports:
+      - "80:80"
+    restart: "no"
+    command: python HZZAnalysis.py

@@ -21,5 +21,8 @@ RUN pip install --no-cache-dir -r requirements.txt
 # Create output directory for plot
 RUN mkdir -p /hzz-analysis/output
 
+# Make port 80 available 
+EXPOSE 80
+
 # Run Python script
 CMD ["python", "HZZAnalysis.py"]
