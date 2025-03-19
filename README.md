@@ -12,14 +12,17 @@ Setup Instructions
 Follow these steps to run the analysis and access the outputs:
 
 1. Download the HZZ-Docker Folder
+
 Clone or download the HZZ-Docker folder from this repository to your local machine.
 
-2. Change Directory to HZZ-Docker Folder
+3. Change Directory to HZZ-Docker Folder
+   
 Open a terminal window and navigate to the HZZ-Docker folder:
 
 cd /path/to/HZZ-Docker
 
 3. Build and Start the Docker Containers
+   
 Run the following command to build and start the Docker containers using Docker Compose:
 
 docker-compose up --build
@@ -27,6 +30,7 @@ docker-compose up --build
 This will initiate the analysis process in the Docker container. The analysis will run inside the container as specified by the setup.
 
 4. Access the Output Files
+   
 Once the analysis is complete, you will find the generated data and plots inside the outputs folder within the HZZ-Docker directory.
 
 
