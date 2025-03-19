@@ -1,5 +1,7 @@
 numpy==1.26.4
+pandas==2.2.3
 awkward==2.7.4
+pyarrow==14.0.2
 vector==1.6.1
 ipython==8.25.0
 uproot==5.5.2

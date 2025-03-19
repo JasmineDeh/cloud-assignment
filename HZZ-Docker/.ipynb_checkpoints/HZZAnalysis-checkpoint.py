@@ -15,6 +15,10 @@ import awkward as ak # to represent nested data in columnar format
 import vector # for 4-momentum calculations
 import time
 import os
+import pandas as pd
+import argparse
+import pyarrow as pa
+import pyarrow.parquet as pq
 
 #####################################################################################
 
@@ -95,23 +99,35 @@ def calc_weight(weight_variables, sample, events):
     for variable in weight_variables:
         total_weight = total_weight * events[variable]
     return total_weight
-    
-#####################################################################################
-# Main analysis
 
-def main(lumi=10, fraction=1.0):
+#####################################################################################
+# Function to read, process, and store data
+
+def process(lumi=10, fraction=1.0):
     """
-    Main function applying anaylsis.
+    Function to process data.
 
     Args:
         lumi (int): Luminosity (default is 10 for all data)
         fraction (float): Controls the fraction of all events analysed (default is 1.0 reduce for quicker runtime, applied in loop over tree)
     Returns:
-        (matplotlib.pyplot):
+        (ak.array): processed data.
     """
-    
     # Define empty dictionary to hold awkward arrays
     all_data = {} 
+
+     # Define output directory
+    output_dir = "/hzz-analysis/output"
+    # Create directory if it doesnt exist
+    os.makedirs(output_dir, exist_ok=True)
+
+    # Define a mapping of sample names to file-friendly names
+    file_names = {
+    "data": "data.parquet",
+    "Background $Z,t\bar{t}$": "Background_Zt\bar{t}.parquet",
+    "Background $ZZ^*$": "background_ZZ.parquet",
+    "Signal ($m_H$ = 125 GeV)": "signal_125GeV.parquet"
+    }
 
     # Loop over samples
     for s in samples:
@@ -135,7 +151,7 @@ def main(lumi=10, fraction=1.0):
             print("\t"+val+":") 
 
             # Open file
-            t = uproot.open(fileString, timeout=300)  
+            t = uproot.open(fileString, timeout=600)  
             if "mini" not in t:
                 raise ValueError(f"Tree 'mini' not found in {fileString}")
             
@@ -178,10 +194,67 @@ def main(lumi=10, fraction=1.0):
                 # Append data to the whole sample data list
                 sample_data.append(data)
 
-            frames.append(ak.concatenate(sample_data)) 
+            # Once all files are processed for this sample, save the sample_data
+            if sample_data:  # Ensure that sample_data is not empty
+                # Concatenate the awkward arrays for this sample
+                combined_sample_data = ak.concatenate(sample_data)
 
-        all_data[s] = ak.concatenate(frames) # dictionary entry is concatenated awkward arrays
+                # Convert the awkward array to an Arrow table
+                arrow_table = ak.to_arrow_table(combined_sample_data)
 
+                # Use mapped filename to avoide spaces/special characters
+                filename = file_names.get(s, f"{s.replace(' ', '_').replace('$', '').replace(',', '').replace('(', '').replace(')', '')}.parquet")
+
+
+                # Define the output file path for this sample
+                data_path = os.path.join(output_dir, filename)
+
+                # Save to a Parquet file
+                pq.write_table(arrow_table, data_path)
+
+                print(f"{s} processed and saved to {data_path}")
+
+    print(f"All samples processed and saved in {output_dir}")
+
+######################################################################################
+# Function to create and save plot of processed data
+
+def plot(lumi=10, fraction=1.0):
+    """
+    Function to create plot.
+
+    Args:
+        lumi (int): Luminosity (default is 10 for all data)
+        fraction (float): Controls the fraction of all events analysed (default is 1.0 reduce for quicker runtime, applied in loop over tree)
+    
+    Returns:
+        (matplotlib.pyplot): plot
+    """
+    # Read in data
+    file_paths = {
+        "data": "/hzz-analysis/output/data.parquet",
+        "Background $Z,t\\bar{t}$": "/hzz-analysis/output/Background_Zt\\bar{t}.parquet",
+        "Background $ZZ^*$": "/hzz-analysis/output/background_ZZ.parquet",
+        "Signal ($m_H$ = 125 GeV)": "/hzz-analysis/output/signal_125GeV.parquet"
+    }
+
+    all_data = {}
+
+    for sample_name, file_path in file_paths.items():
+        print(f"Reading {file_path}...")
+        
+        # Read Parquet file into a PyArrow Table
+        arrow_table = pq.read_table(file_path)
+
+        # Covert PyArrow Table to Awkward Array
+        awkward_array = ak.from_arrow(arrow_table)
+
+        # Store in dictionary
+        all_data[sample_name] = awkward_array
+
+    print("All files loaded into Awkward Arrays.")
+    
+               
     # x-axis range of the plot 
     xmin = 80 * GeV
     xmax = 250 * GeV
@@ -311,7 +384,6 @@ def main(lumi=10, fraction=1.0):
     plot_path = os.path.join(output_dir, "plot.png")
     plt.savefig(plot_path)
     plt.close()
-    print(f"Plot saved to {plot_path}")
 
     # Signal stacked height
     signal_tot = signal_heights[0] + mc_x_tot
@@ -329,9 +401,37 @@ def main(lumi=10, fraction=1.0):
     # Signal significance calculation
     signal_significance = N_sig/np.sqrt(N_bg + 0.3 * N_bg**2) 
     print(f"\nResults:\n{N_sig = :.3f}\n{N_bg = :.3f}\n{signal_significance = :.3f}")
+    print(f"Plot saved to {plot_path}")
+    
+#####################################################################################
+# Main analysis
+
+def main(lumi=10, fraction=1.0, function=None):
+    """
+    Main function to either process data or plot.
+
+    Args:
+        lumi (int): Luminosity (default is 10 for all data)
+        fraction (float): Controls the fraction of all events analysed (default is 1.0 reduce for quicker runtime, applied in loop over tree)
+        function (string): Function to be called.
+
+    Returns:
+        (matplotlib.pyplot) or (ak.array)
+    """
+    if function == 'process':
+        process(lumi, fraction)
+    elif function == 'plot':
+        plot(lumi, fraction)
+    else:
+        raise ValueError("Invalid function. Must be 'process' or 'plot'.")
+
 
 ####################################################################################
 if __name__ == "__main__":
-    main()
+    parser = argparse.ArgumentParser(description="Run the HZZ analysis process or plot.")
+    parser.add_argument('function', choices=['process', 'plot', ], help="Function to run")
+    args = parser.parse_args()
+
+    main(function=args.function)
 
 

@@ -1,13 +1,36 @@
 version: "3.8"
 services:
-  analysis:
+  hzz-process:
     build: .
-    container_name: hzz-analysis
+    container_name: hzz-process
     volumes:
-      - .:/hzz-analysis
+      - ./output:/hzz-analysis/output
     environment:
       - PYTHONUNBUFFERED=1
-    ports:
-      - "80:80"
     restart: "no"
-    command: python HZZAnalysis.py
+    command: python HZZAnalysis.py process
+
+  hzz-plot:
+    build: .
+    container_name: hzz-plot
+    volumes:
+      - ./output:/hzz-analysis/output
+    environment:
+      - PYTHONUNBUFFERED=1
+    restart: "no"
+    command: 
+      - sh
+      - -c
+      - | 
+          until [ -f /hzz-analysis/output/data.parquet ] &&
+                [ -f /hzz-analysis/output/'Background_Zt\bar{t}.parquet' ] &&  
+                [ -f /hzz-analysis/output/background_ZZ.parquet ] && 
+                [ -f /hzz-analysis/output/signal_125GeV.parquet ]; 
+          do 
+              echo 'Waiting for all processed data files...'; 
+              sleep 60; 
+          done; 
+          echo 'All data processed... Producing plot...'; 
+          python HZZAnalysis.py plot
+
+    
